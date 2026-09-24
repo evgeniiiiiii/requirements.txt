@@ -57,7 +57,13 @@ async def show_item(callback: CallbackQuery):
             return
         cat = await session.get(Category, item.category_id)
 
-    type_names = {"lecture": "Лекция", "video": "Видео", "book": "Книга"}
+    type_names = {
+        "lecture": "Лекция",
+        "video": "Видео",
+        "book": "Книга",
+        "photo": "Фото",
+        "file": "Файл"
+    }
 
     text = (
         f"<b>{item.title}</b>\n"
@@ -72,11 +78,22 @@ async def show_item(callback: CallbackQuery):
 
     if item.media_file_id:
         if item.content_type == "video":
-            await callback.message.answer_video(item.media_file_id, caption=text, parse_mode="HTML", reply_markup=markup)
+            await callback.message.answer_video(
+                item.media_file_id, caption=text, parse_mode="HTML", reply_markup=markup
+            )
+        elif item.content_type == "photo":
+            await callback.message.answer_photo(
+                item.media_file_id, caption=text, parse_mode="HTML", reply_markup=markup
+            )
         else:
-            await callback.message.answer_photo(item.media_file_id, caption=text, parse_mode="HTML", reply_markup=markup)
+            # Будь-який файл (pdf, docx, zip, mp3 тощо)
+            await callback.message.answer_document(
+                item.media_file_id, caption=text, parse_mode="HTML", reply_markup=markup
+            )
     else:
-        await callback.message.answer(text, parse_mode="HTML", disable_web_page_preview=False, reply_markup=markup)
+        await callback.message.answer(
+            text, parse_mode="HTML", disable_web_page_preview=False, reply_markup=markup
+        )
 
     await callback.answer()
 
