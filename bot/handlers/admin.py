@@ -136,7 +136,8 @@ async def add_item_description(message: Message, state: FSMContext):
 async def add_item_type(callback: CallbackQuery, state: FSMContext):
     await state.update_data(content_type=callback.data.split("_")[1])
     await callback.message.edit_text(
-        "Отправьте фото / видео или ссылку.\nИли нажмите «Пропустить».",
+        "Отправьте фото / видео / любой файл (PDF, DOCX, ZIP и т.д.) или ссылку.\n"
+        "Или нажмите «Пропустить».",
         reply_markup=None
     )
     await callback.message.answer("...", reply_markup=skip_kb())
@@ -146,18 +147,38 @@ async def add_item_type(callback: CallbackQuery, state: FSMContext):
 @router.message(AddItem.media)
 async def add_item_media(message: Message, state: FSMContext):
     data = await state.get_data()
-    media_file_id = media_url = None
+    media_file_id = None
+    media_url = None
+    content_type = data.get("content_type", "file")
 
     if message.text == "⏭ Пропустить":
         pass
     elif message.photo:
         media_file_id = message.photo[-1].file_id
+        content_type = "photo"
     elif message.video:
         media_file_id = message.video.file_id
+        content_type = "video"
+    elif message.document:
+        media_file_id = message.document.file_id
+        content_type = "file"
+    elif message.audio:
+        media_file_id = message.audio.file_id
+        content_type = "file"
+    elif message.voice:
+        media_file_id = message.voice.file_id
+        content_type = "file"
     elif message.text and message.text.startswith("http"):
         media_url = message.text.strip()
     else:
-        await message.answer("Отправьте фото, видео, ссылку или «Пропустить».")
+        await message.answer(
+            "Надішліть:\n"
+            "• фото\n"
+            "• відео\n"
+            "• будь-який файл (PDF, DOCX, ZIP тощо)\n"
+            "• або посилання\n\n"
+            "Або натисніть «Пропустить»."
+        )
         return
 
     async with async_session() as session:
@@ -165,7 +186,7 @@ async def add_item_media(message: Message, state: FSMContext):
             category_id=data["category_id"],
             title=data["title"],
             description=data.get("description", ""),
-            content_type=data["content_type"],
+            content_type=content_type,
             media_file_id=media_file_id,
             media_url=media_url
         ))
@@ -240,7 +261,7 @@ async def edit_item_description(message: Message, state: FSMContext):
 async def edit_item_type(callback: CallbackQuery, state: FSMContext):
     await state.update_data(content_type=callback.data.split("_")[1])
     await callback.message.edit_text(
-        "Отправьте новое фото/видео/ссылку или нажмите «Пропустить»:",
+        "Отправьте новое фото / видео / любой файл или ссылку.\nИли нажмите «Пропустить»:",
         reply_markup=None
     )
     await callback.message.answer("...", reply_markup=skip_kb())
@@ -271,9 +292,23 @@ async def edit_item_finish(message: Message, state: FSMContext):
         elif message.photo:
             item.media_file_id = message.photo[-1].file_id
             item.media_url = None
+            item.content_type = "photo"
         elif message.video:
             item.media_file_id = message.video.file_id
             item.media_url = None
+            item.content_type = "video"
+        elif message.document:
+            item.media_file_id = message.document.file_id
+            item.media_url = None
+            item.content_type = "file"
+        elif message.audio:
+            item.media_file_id = message.audio.file_id
+            item.media_url = None
+            item.content_type = "file"
+        elif message.voice:
+            item.media_file_id = message.voice.file_id
+            item.media_url = None
+            item.content_type = "file"
         elif message.text and message.text.startswith("http"):
             item.media_url = message.text.strip()
             item.media_file_id = None
